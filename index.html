@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="icon" href="../assets/icons/todo.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/todo-192.png">
+<meta name="theme-color" content="#ffffff">
 <title>Todo</title>
 <style>
   /* DA « brute old school » du site : Times, traits noirs 1 px, boutons gris en relief, icônes pixel.
@@ -29,34 +32,59 @@
   button{font:13px Arial,Helvetica,sans-serif;padding:3px 8px;min-height:28px;border:2px outset #ddd;background:var(--btn);
     color:#000;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:5px}
   button:active{border-style:inset}
+  button[hidden]{display:none}
   button:focus-visible{outline:1px dotted #000;outline-offset:-5px}
   #decreaseFontBtn,#increaseFontBtn,#fontSpaceBtn{font-family:"Times New Roman",Times,serif;font-weight:bold;min-width:30px;justify-content:center}
   #decreaseFontBtn{font-size:12px}
   #increaseFontBtn{font-size:17px}
   #fontSpaceBtn{font-family:"Courier New",Courier,monospace;font-size:13px}
   label.lb{font-weight:bold}
-  #listSelect,#newTaskInput,.task-edit-input,.modal input{font:inherit;border:2px inset #ccc;background:#fff;color:var(--fg);
-    border-radius:0;padding:3px 6px}
+  #listSelect,#newTaskInput,.task-edit-input,.modal input,input[type=date],.task-edit-row select{font:inherit;border:2px inset #ccc;
+    background:#fff;color:var(--fg);border-radius:0;padding:3px 6px}
   #listSelect{font-size:16px;min-height:28px;max-width:55vw}
   #newTaskForm{display:flex;gap:6px;margin:0 0 8px}
+  #newTaskForm[hidden]{display:none}
   #newTaskInput{flex:1;min-width:0;font-size:var(--content-font-size)}
+  input[type=date]{font-size:14px;min-height:28px}
+
+  /* Bandeau des échéances : encadré noir, comme les avertissements du site */
+  #dueBanner{display:flex;align-items:center;gap:6px;margin:0 0 8px;padding:4px 8px;border:1px solid var(--line);cursor:pointer;
+    font-weight:bold}
+  #dueBanner[hidden],#conflictBar[hidden]{display:none}
+  #dueBanner:hover{background:var(--hover)}
+  #conflictBar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0 0 8px;padding:4px 8px;border:2px solid #c00000}
+  #conflictBar span{flex:1;min-width:200px}
 
   /* Liste : simple encadré, comme les listes du site */
   #taskList{list-style:none;margin:0;padding:0;border:1px solid var(--line);font-size:var(--content-font-size)}
   #taskList[hidden]{display:none}
-  .task-item{display:flex;align-items:center;gap:10px;padding:4px 8px;border-top:1px solid var(--soft)}
+  .task-item{display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px;padding:4px 8px;border-top:1px solid var(--soft)}
   .task-item:first-child{border-top:0}
   .task-item:hover{background:var(--hover)}
   .task-checkbox{appearance:none;-webkit-appearance:none;flex:none;width:16px;height:16px;margin:0;border:2px inset #ccc;
     background:#fff;cursor:pointer;display:grid;place-items:center}
   .task-checkbox:checked::after{content:"✓";font:bold 13px/1 Arial,sans-serif;color:#000}
   .task-checkbox:focus-visible{outline:1px dotted #000;outline-offset:1px}
-  .task-text{flex:1;min-width:0;cursor:text;padding:2px 4px;overflow-wrap:anywhere}
+  .task-text{flex:1 1 9em;min-width:0;cursor:text;padding:2px 4px;overflow-wrap:anywhere}
   .task-text:focus{outline:1px dotted #000}
   .task-item.done .task-text{text-decoration:line-through;color:var(--mut)}
   .task-edit-input{flex:1;min-width:0;font-size:var(--content-font-size)}
   .task-delete{flex:none;min-height:0;padding:1px;border:0;background:none;opacity:.35}
   .task-item:hover .task-delete,.task-delete:focus-visible{opacity:1}
+  .task-prio{flex:none;font-weight:bold;color:#c00000}
+  .task-list-name,.due{flex:none;font:13px "Courier New",Courier,monospace;white-space:nowrap}
+  .task-list-name{color:var(--mut);max-width:40%;overflow:hidden;text-overflow:ellipsis}
+  .due{border:1px solid var(--soft);padding:0 4px}
+  .due.soon{border-color:var(--line);font-weight:bold}
+  .due.today{background:#ffd800;color:#000;border-color:#000;font-weight:bold}
+  .due.late{background:#c00000;color:#fff;border-color:#c00000;font-weight:bold}
+  .task-item.done .due{background:none;color:var(--mut);border-color:var(--soft);font-weight:normal}
+  .group-head{padding:2px 8px;border-top:1px solid var(--line);background:var(--btn);font-weight:bold;font-size:15px}
+  .group-head:first-child{border-top:0}
+  .task-edit-row{flex:1;min-width:0;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .task-edit-row .task-edit-input{flex:1 1 220px}
+  .task-edit-row label{display:inline-flex;align-items:center;gap:3px;font-size:14px;white-space:nowrap}
+  .task-edit-row select{font-size:14px;min-height:28px;max-width:100%}
   #emptyState{margin:0;padding:40px 16px;border:1px solid var(--line);text-align:center;color:var(--mut);font-style:italic}
 
   /* Ligne d'état */
@@ -85,7 +113,10 @@
   body.dark-mode{--bg:#000;--fg:#ffff8c;--mut:#bdbd6a;--line:#ffff8c;--soft:#555;--acc:#7fb2ff;--vis:#c69cff;--hover:#202000}
   body.dark-mode button{background:#000;color:#ffff8c;border:1px solid #ffff8c}
   body.dark-mode #listSelect,body.dark-mode #newTaskInput,body.dark-mode .task-edit-input,body.dark-mode .modal input,
-  body.dark-mode .task-checkbox{background:#000;border:1px solid #ffff8c;color:#ffff8c}
+  body.dark-mode .task-checkbox,body.dark-mode input[type=date],body.dark-mode .task-edit-row select{background:#000;
+    border:1px solid #ffff8c;color:#ffff8c;color-scheme:dark}
+  body.dark-mode .group-head{background:#202000}
+  body.dark-mode .task-prio{color:#ff6060}
   body.dark-mode .task-checkbox:checked::after{color:#ffff8c}
   body.dark-mode .backdrop{background:rgba(0,0,0,.7)}
 
@@ -95,6 +126,9 @@
     .lbl{display:none}            /* boutons : icône seule */
     .vsep,.status-line .hint{display:none}
     #listSelect{max-width:none;flex:1}
+    #newTaskForm{flex-wrap:wrap}
+    #newTaskInput{flex:1 1 100%}
+    #newTaskDate{flex:1}
   }
 </style>
 </head>
@@ -137,10 +171,20 @@
   <button type="button" id="addListBtn" title="Nouvelle liste"><img class="i i16" src="../assets/icons/nouvelle-liste.png" alt="" width="16" height="16"><span class="lbl">Nouvelle</span></button>
   <button type="button" id="renameListBtn" title="Renommer la liste"><img class="i i16" src="../assets/icons/renommer.png" alt="" width="16" height="16"><span class="lbl">Renommer</span></button>
   <button type="button" id="deleteListBtn" title="Supprimer la liste"><img class="i i16" src="../assets/icons/supprimer.png" alt="" width="16" height="16"><span class="lbl">Supprimer</span></button>
+  <button type="button" id="setupListsBtn" title="Créer les listes conseillées (Boîte de réception, Ordi, Enfants & santé…)" hidden><img class="i i16" src="../assets/icons/dossier.png" alt="" width="16" height="16"><span class="lbl">Listes conseillées</span></button>
+</div>
+
+<div id="dueBanner" role="button" tabindex="0" title="Voir les échéances" hidden><img class="i i16" src="../assets/icons/a-venir.png" alt="" width="16" height="16"><span id="dueBannerText"></span></div>
+
+<div id="conflictBar" role="alert" hidden>
+  <span>La todo a été modifiée sur un autre appareil pendant que celui-ci avait des changements non envoyés.</span>
+  <button type="button" id="conflictKeepBtn" title="Envoyer la version de cet appareil (écrase l'autre)">Garder celle-ci</button>
+  <button type="button" id="conflictTakeBtn" title="Recharger l'autre version (perd les changements d'ici)">Prendre l'autre</button>
 </div>
 
 <form id="newTaskForm" autocomplete="off">
-  <input type="text" id="newTaskInput" placeholder="Nouvelle tâche…" aria-label="Nouvelle tâche">
+  <input type="text" id="newTaskInput" placeholder="Nouvelle tâche…  (!important  @demain, @lundi, @3/11)" aria-label="Nouvelle tâche">
+  <input type="date" id="newTaskDate" title="Échéance (facultative)" aria-label="Échéance">
   <button type="submit" title="Ajouter la tâche">Ajouter</button>
 </form>
 
@@ -150,7 +194,7 @@
 <div class="status-line">
   <div id="status" class="offline"><span id="statusDot"></span><span id="statusLabel">hors ligne</span></div>
   <span class="grow"></span>
-  <span class="hint">clic sur une tâche : modifier · Entrée : valider · Échap : annuler</span>
+  <span class="hint">clic sur une tâche : modifier, dater, déplacer · Entrée : valider · Échap : annuler</span>
 </div>
 
 <input type="file" id="fileInput" accept=".txt" style="display:none">
@@ -166,14 +210,25 @@
     const LS_DARK = 'todoDarkMode';
     const LS_MONO = 'todoMonospace';
     const LS_LAST_LIST = 'todoLastList';
+    const LS_DIRTY = 'todoDirty';          // changements locaux pas encore envoyés au gist
+    const LS_BASE = 'todoRemoteBase';      // dernier contenu connu du gist (détection des conflits)
     const DEBOUNCE_MS = 2500;
+    const DUE_VIEW = '__due__';            // pseudo-liste « Échéances » (jamais sérialisée)
+    const RECOMMENDED_LISTS = ['Boîte de réception', 'Messages', 'Ordi', 'Enfants & santé', 'Cours', 'Maison & général', 'Projets'];
 
     const listSelect = document.getElementById('listSelect');
     const addListBtn = document.getElementById('addListBtn');
     const renameListBtn = document.getElementById('renameListBtn');
     const deleteListBtn = document.getElementById('deleteListBtn');
+    const setupListsBtn = document.getElementById('setupListsBtn');
+    const dueBanner = document.getElementById('dueBanner');
+    const dueBannerText = document.getElementById('dueBannerText');
+    const conflictBar = document.getElementById('conflictBar');
+    const conflictKeepBtn = document.getElementById('conflictKeepBtn');
+    const conflictTakeBtn = document.getElementById('conflictTakeBtn');
     const newTaskForm = document.getElementById('newTaskForm');
     const newTaskInput = document.getElementById('newTaskInput');
+    const newTaskDate = document.getElementById('newTaskDate');
     const taskListEl = document.getElementById('taskList');
     const emptyStateEl = document.getElementById('emptyState');
     const clearBtn = document.getElementById('clearBtn');
@@ -199,14 +254,86 @@
 
     let ghToken = localStorage.getItem(LS_TOKEN) || '';
 
-    /* ---------- modèle de données : plusieurs listes, sérialisation façon org-mode ---------- */
-    let state = { lists: [], currentListId: null };
+    /* ---------- modèle de données : plusieurs listes, sérialisation façon org-mode ----------
+       Une tâche : - [ ] [#A] texte DEADLINE: <2026-11-03>
+       [#A] (important) et DEADLINE (échéance) sont facultatifs ; une ancienne version de la
+       page les garde simplement dans le texte. */
+    let state = { lists: [], currentListId: null, dueView: false };
     let uidCounter = 0;
     function genId() { uidCounter++; return 'id' + uidCounter + Math.random().toString(36).slice(2, 8); }
 
     function sanitizeInlineText(v) { return (v || '').replace(/[\r\n]+/g, ' ').trim(); }
 
-    function sortTasks(list) { list.tasks.sort((a, b) => (a.done ? 1 : 0) - (b.done ? 1 : 0)); }
+    function parseTaskText(raw) {
+      let text = sanitizeInlineText(raw), prio = false, deadline = null;
+      const p = /^\[#A\]\s*/.exec(text);
+      if (p) { prio = true; text = text.slice(p[0].length); }
+      const d = /\s*DEADLINE:\s*<(\d{4}-\d{2}-\d{2})[^>]*>$/.exec(text);
+      if (d) { deadline = d[1]; text = text.slice(0, d.index); }
+      return { text: text.trim(), prio, deadline };
+    }
+
+    function formatTaskText(t) {
+      return (t.prio ? '[#A] ' : '') + t.text + (t.deadline ? ' DEADLINE: <' + t.deadline + '>' : '');
+    }
+
+    // À faire avant fait ; parmi les tâches à faire : importantes, puis par échéance ; sinon ordre conservé.
+    function compareTasks(a, b) {
+      if (a.done !== b.done) return a.done ? 1 : -1;
+      if (a.done) return 0;
+      if (a.prio !== b.prio) return a.prio ? -1 : 1;
+      if (a.deadline !== b.deadline) {
+        if (!a.deadline) return 1;
+        if (!b.deadline) return -1;
+        return a.deadline < b.deadline ? -1 : 1;
+      }
+      return 0;
+    }
+    function sortTasks(list) { list.tasks.sort(compareTasks); }
+
+    /* ---------- dates (AAAA-MM-JJ, heure locale) ---------- */
+    const WEEKDAYS = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+    function today() { const d = new Date(); d.setHours(0, 0, 0, 0); return d; }
+    function isoDate(d) {
+      return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+    function parseIso(iso) { const [y, m, d] = iso.split('-').map(Number); return new Date(y, m - 1, d); }
+    function daysUntil(iso) { return Math.round((parseIso(iso) - today()) / 86400000); }
+
+    function dueInfo(iso) {
+      const n = daysUntil(iso);
+      const d = parseIso(iso);
+      let label;
+      if (n < 0) label = 'en retard ' + (-n) + ' j';
+      else if (n === 0) label = "aujourd'hui";
+      else if (n === 1) label = 'demain';
+      else if (n < 7) label = d.toLocaleDateString('fr-FR', { weekday: 'long' });
+      else label = d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short',
+        year: d.getFullYear() === today().getFullYear() ? undefined : 'numeric' });
+      const cls = n < 0 ? 'late' : n === 0 ? 'today' : n <= 2 ? 'soon' : '';
+      return { n, label, cls };
+    }
+
+    // « demain », « lundi » / « lun », « 3/11 », « 3/11/27 » → AAAA-MM-JJ (toujours dans le futur)
+    function parseQuickDate(word) {
+      const w = word.toLowerCase();
+      const d = today();
+      if (w === "aujourd'hui" || w === 'auj') return isoDate(d);
+      if (w === 'demain') { d.setDate(d.getDate() + 1); return isoDate(d); }
+      if (w.length >= 3) {
+        const wd = WEEKDAYS.findIndex(name => name.startsWith(w));
+        if (wd >= 0) { d.setDate(d.getDate() + ((wd - d.getDay() + 6) % 7) + 1); return isoDate(d); }
+      }
+      const m = /^(\d{1,2})\/(\d{1,2})(?:\/(\d{2}|\d{4}))?$/.exec(w);
+      if (m) {
+        const year = m[3] ? (m[3].length === 2 ? 2000 + Number(m[3]) : Number(m[3])) : d.getFullYear();
+        const res = new Date(year, Number(m[2]) - 1, Number(m[1]));
+        if (res.getDate() !== Number(m[1])) return null;          // 31/02 etc.
+        if (!m[3] && res < d) res.setFullYear(year + 1);
+        return isoDate(res);
+      }
+      return null;
+    }
 
     function parseSerialized(text) {
       const lists = [];
@@ -226,7 +353,7 @@
             current = { id: genId(), name: 'Sans titre', tasks: [] };
             lists.push(current);
           }
-          current.tasks.push({ id: genId(), text: sanitizeInlineText(taskMatch[2]), done: taskMatch[1].toLowerCase() === 'x' });
+          current.tasks.push({ id: genId(), ...parseTaskText(taskMatch[2]), done: taskMatch[1].toLowerCase() === 'x' });
         }
         // toute autre ligne (vide, mal formée) est ignorée silencieusement
       }
@@ -237,7 +364,7 @@
     function serializeLists(lists) {
       return lists.map(list => {
         const header = '* ' + (list.name || 'Sans titre');
-        const tasks = list.tasks.map(t => '- [' + (t.done ? 'X' : ' ') + '] ' + t.text).join('\n');
+        const tasks = list.tasks.map(t => '- [' + (t.done ? 'X' : ' ') + '] ' + formatTaskText(t)).join('\n');
         return tasks ? header + '\n' + tasks : header;
       }).join('\n\n') + '\n';
     }
@@ -253,28 +380,59 @@
 
     function getCurrentList() { return state.lists.find(l => l.id === state.currentListId); }
 
+    function findTask(id) {
+      for (const list of state.lists) {
+        const task = list.tasks.find(t => t.id === id);
+        if (task) return { list, task };
+      }
+      return null;
+    }
+
+    function rememberCurrentView() {
+      const current = getCurrentList();
+      if (state.dueView) localStorage.setItem(LS_LAST_LIST, DUE_VIEW);
+      else if (current) localStorage.setItem(LS_LAST_LIST, current.name);
+    }
+
     function loadStateFromText(text) {
       state.lists = parseSerialized(text);
       const lastName = localStorage.getItem(LS_LAST_LIST);
       const match = lastName ? state.lists.find(l => l.name === lastName) : null;
       state.currentListId = match ? match.id : (state.lists[0] ? state.lists[0].id : null);
+      state.dueView = lastName === DUE_VIEW;
       ensureAtLeastOneList();
+    }
+
+    // Tâches à faire avec échéance, toutes listes confondues, de la plus proche à la plus lointaine.
+    function dueTasks() {
+      const out = [];
+      state.lists.forEach(list => list.tasks.forEach(task => {
+        if (!task.done && task.deadline) out.push({ list, task });
+      }));
+      return out.sort((a, b) => (a.task.deadline < b.task.deadline ? -1 : a.task.deadline > b.task.deadline ? 1 : 0));
     }
 
     /* ---------- rendu ---------- */
     function renderListSelect() {
       listSelect.innerHTML = '';
+      const dueOpt = document.createElement('option');
+      dueOpt.value = DUE_VIEW;
+      const nDue = dueTasks().length;
+      dueOpt.textContent = '⏰ Échéances' + (nDue ? ' (' + nDue + ')' : '');
+      dueOpt.selected = state.dueView;
+      listSelect.appendChild(dueOpt);
       state.lists.forEach(l => {
         const opt = document.createElement('option');
         opt.value = l.id;
         const open = l.tasks.filter(t => !t.done).length;
         opt.textContent = l.name + (open ? ' (' + open + ')' : '');
-        if (l.id === state.currentListId) opt.selected = true;
+        if (!state.dueView && l.id === state.currentListId) opt.selected = true;
         listSelect.appendChild(opt);
       });
     }
 
-    function buildTaskRow(task) {
+    // listName : affiché dans la vue Échéances, où les tâches viennent de plusieurs listes.
+    function buildTaskRow(task, listName) {
       const li = document.createElement('li');
       li.className = 'task-item' + (task.done ? ' done' : '');
       li.dataset.id = task.id;
@@ -308,21 +466,72 @@
       delBtn.addEventListener('click', () => deleteTask(task.id));
 
       li.appendChild(checkbox);
+      if (task.prio) {
+        const prio = document.createElement('span');
+        prio.className = 'task-prio';
+        prio.textContent = '!';
+        prio.title = 'Important';
+        li.appendChild(prio);
+      }
       li.appendChild(textSpan);
+      if (task.deadline) {
+        const info = dueInfo(task.deadline);
+        const due = document.createElement('span');
+        due.className = 'due ' + info.cls;
+        due.textContent = info.label;
+        due.title = 'Échéance : ' + parseIso(task.deadline).toLocaleDateString('fr-FR', { dateStyle: 'full' });
+        li.appendChild(due);
+      }
+      if (listName) {
+        const ln = document.createElement('span');
+        ln.className = 'task-list-name';
+        ln.textContent = listName;
+        li.appendChild(ln);
+      }
       li.appendChild(delBtn);
       return li;
     }
 
+    // Édition sur place : texte, échéance, importance et liste (déplacer = trier la boîte de réception).
     function editTaskInline(taskId, li) {
-      const list = getCurrentList();
-      const task = list && list.tasks.find(t => t.id === taskId);
-      if (!task) return;
-      const textSpan = li.querySelector('.task-text');
+      const found = findTask(taskId);
+      if (!found) return;
+      const { task } = found;
+
+      const row = document.createElement('div');
+      row.className = 'task-edit-row';
       const input = document.createElement('input');
       input.type = 'text';
       input.className = 'task-edit-input';
       input.value = task.text;
-      li.replaceChild(input, textSpan);
+      input.setAttribute('aria-label', 'Texte de la tâche');
+      const dateInput = document.createElement('input');
+      dateInput.type = 'date';
+      dateInput.value = task.deadline || '';
+      dateInput.title = 'Échéance (vider pour la retirer)';
+      dateInput.setAttribute('aria-label', 'Échéance');
+      const prioLabel = document.createElement('label');
+      const prioCb = document.createElement('input');
+      prioCb.type = 'checkbox';
+      prioCb.checked = task.prio;
+      prioLabel.append(prioCb, 'important');
+      const listSel = document.createElement('select');
+      listSel.title = 'Déplacer vers une autre liste';
+      listSel.setAttribute('aria-label', 'Liste');
+      state.lists.forEach(l => {
+        const opt = document.createElement('option');
+        opt.value = l.id;
+        opt.textContent = l.name;
+        opt.selected = l === found.list;
+        listSel.appendChild(opt);
+      });
+      const okBtn = document.createElement('button');
+      okBtn.type = 'button';
+      okBtn.textContent = 'OK';
+      row.append(input, dateInput, prioLabel, listSel, okBtn);
+
+      li.querySelector('.task-text').replaceWith(row);
+      li.querySelectorAll('.task-prio,.task-list-name,.due').forEach(el => el.remove());
       input.focus();
       input.select();
 
@@ -332,6 +541,15 @@
         done = true;
         const val = sanitizeInlineText(input.value);
         if (val) task.text = val;
+        task.deadline = dateInput.value || null;
+        task.prio = prioCb.checked;
+        const target = state.lists.find(l => l.id === listSel.value);
+        if (target && target !== found.list) {
+          found.list.tasks = found.list.tasks.filter(t => t !== task);
+          target.tasks.unshift(task);
+          sortTasks(target);
+        }
+        sortTasks(found.list);
         mutateState();
       }
       function cancel() {
@@ -339,24 +557,76 @@
         done = true;
         render();
       }
-      input.addEventListener('keydown', e => {
-        if (e.key === 'Enter') { e.preventDefault(); commit(); }
+      row.addEventListener('keydown', e => {
+        if (e.key === 'Enter' && e.target !== okBtn) { e.preventDefault(); commit(); }
         else if (e.key === 'Escape') { e.preventDefault(); cancel(); }
       });
-      input.addEventListener('blur', commit);
+      okBtn.addEventListener('click', commit);
+      // Valider quand le focus quitte la ligne (pas quand il passe du texte à la date, etc.).
+      row.addEventListener('focusout', () => {
+        setTimeout(() => { if (!row.contains(document.activeElement)) commit(); }, 0);
+      });
+    }
+
+    function isEditing() { return !!taskListEl.querySelector('.task-edit-row'); }
+
+    function showTaskList(empty, emptyText) {
+      taskListEl.hidden = empty;
+      emptyStateEl.hidden = !empty;
+      emptyStateEl.lastChild.textContent = emptyText;
     }
 
     function renderTaskList() {
-      const list = getCurrentList();
       taskListEl.innerHTML = '';
-      if (!list || list.tasks.length === 0) {
-        taskListEl.hidden = true;
-        emptyStateEl.hidden = false;
-        return;
-      }
-      taskListEl.hidden = false;
-      emptyStateEl.hidden = true;
+      if (state.dueView) { renderDueView(); return; }
+      const list = getCurrentList();
+      if (!list || list.tasks.length === 0) { showTaskList(true, "Aucune tâche pour l'instant."); return; }
+      showTaskList(false);
       list.tasks.forEach(task => taskListEl.appendChild(buildTaskRow(task)));
+    }
+
+    function renderDueView() {
+      const items = dueTasks();
+      if (items.length === 0) { showTaskList(true, 'Aucune échéance. Tranquille.'); return; }
+      showTaskList(false);
+      const groups = [['En retard', n => n < 0], ["Aujourd'hui", n => n === 0],
+        ['7 prochains jours', n => n > 0 && n <= 7], ['Plus tard', n => n > 7]];
+      groups.forEach(([title, test]) => {
+        const inGroup = items.filter(it => test(daysUntil(it.task.deadline)));
+        if (!inGroup.length) return;
+        const head = document.createElement('li');
+        head.className = 'group-head';
+        head.textContent = title + ' (' + inGroup.length + ')';
+        taskListEl.appendChild(head);
+        inGroup.forEach(it => taskListEl.appendChild(buildTaskRow(it.task, it.list.name)));
+      });
+    }
+
+    // Bandeau « 2 en retard · 1 aujourd'hui », titre de l'onglet et pastille de l'appli installée.
+    function renderDueSummary() {
+      let late = 0, now = 0, soon = 0;
+      dueTasks().forEach(({ task }) => {
+        const n = daysUntil(task.deadline);
+        if (n < 0) late++; else if (n === 0) now++; else if (n <= 2) soon++;
+      });
+      const parts = [];
+      if (late) parts.push(late + ' en retard');
+      if (now) parts.push(now + " aujourd'hui");
+      if (soon) parts.push(soon + ' dans les 2 jours');
+      dueBannerText.textContent = parts.join(' · ');
+      dueBanner.hidden = !parts.length || state.dueView;
+      const urgent = late + now;
+      document.title = urgent ? '(' + urgent + ') Todo' : 'Todo';
+      if (navigator.setAppBadge) {
+        (urgent ? navigator.setAppBadge(urgent) : navigator.clearAppBadge()).catch(() => {});
+      }
+    }
+
+    function renderToolbarState() {
+      newTaskForm.hidden = state.dueView;
+      renameListBtn.hidden = deleteListBtn.hidden = state.dueView;
+      clearBtn.disabled = state.dueView;
+      setupListsBtn.hidden = RECOMMENDED_LISTS.some(name => state.lists.some(l => l.name === name));
     }
 
     function render() {
@@ -367,7 +637,9 @@
         if (li) restoreId = li.dataset.id;
       }
       renderListSelect();
+      renderToolbarState();
       renderTaskList();
+      renderDueSummary();
       if (restoreId) {
         const li = taskListEl.querySelector('li[data-id="' + restoreId + '"]');
         const cb = li && li.querySelector('.task-checkbox');
@@ -378,35 +650,52 @@
     /* ---------- mutations ---------- */
     function mutateState() {
       localStorage.setItem(LS_CACHE, serializeLists(state.lists));
-      const current = getCurrentList();
-      if (current) localStorage.setItem(LS_LAST_LIST, current.name);
+      rememberCurrentView();
       markDirty();
       render();
     }
 
     function toggleTask(id) {
-      const list = getCurrentList();
-      const task = list && list.tasks.find(t => t.id === id);
-      if (!task) return;
-      task.done = !task.done;
-      sortTasks(list);
+      const found = findTask(id);
+      if (!found) return;
+      found.task.done = !found.task.done;
+      sortTasks(found.list);
       mutateState();
     }
 
-    function addTask(rawText) {
-      const text = sanitizeInlineText(rawText);
-      if (!text) return;
+    // Saisie rapide : « !texte » = important, « texte @demain » (ou @lundi, @3/11) = échéance.
+    // Le champ date, s'il est rempli, l'emporte.
+    function addTask(rawText, dateValue) {
+      const task = parseTaskText(rawText);
+      if (/^!\s*/.test(task.text)) { task.prio = true; task.text = task.text.replace(/^!\s*/, ''); }
+      const at = /\s*@(\S+)$/.exec(task.text);
+      const quick = at && parseQuickDate(at[1]);
+      if (quick) { task.deadline = quick; task.text = task.text.slice(0, at.index); }
+      if (dateValue) task.deadline = dateValue;
+      task.text = task.text.trim();
+      if (!task.text) return;
       const list = getCurrentList();
       if (!list) return;
-      list.tasks.unshift({ id: genId(), text, done: false });
+      list.tasks.unshift({ id: genId(), ...task, done: false });
       sortTasks(list);
       mutateState();
     }
 
     function deleteTask(id) {
-      const list = getCurrentList();
-      if (!list) return;
-      list.tasks = list.tasks.filter(t => t.id !== id);
+      const found = findTask(id);
+      if (!found) return;
+      found.list.tasks = found.list.tasks.filter(t => t !== found.task);
+      mutateState();
+    }
+
+    function createRecommendedLists() {
+      RECOMMENDED_LISTS.forEach(name => {
+        if (!state.lists.some(l => l.name === name)) state.lists.push({ id: genId(), name, tasks: [] });
+      });
+      // La liste par défaut « Sans titre » vide créée au premier lancement ne sert plus.
+      state.lists = state.lists.filter(l => l.name !== 'Sans titre' || l.tasks.length);
+      state.currentListId = state.lists.find(l => l.name === RECOMMENDED_LISTS[0]).id;
+      state.dueView = false;
       mutateState();
     }
 
@@ -418,6 +707,7 @@
       const list = { id: genId(), name: trimmed, tasks: [] };
       state.lists.push(list);
       state.currentListId = list.id;
+      state.dueView = false;
       mutateState();
     }
 
@@ -441,21 +731,33 @@
       mutateState();
     }
 
+    function showDueView() {
+      state.dueView = true;
+      rememberCurrentView();
+      render();
+    }
+
     listSelect.addEventListener('change', () => {
+      if (listSelect.value === DUE_VIEW) { showDueView(); return; }
       const list = state.lists.find(l => l.id === listSelect.value);
       if (!list) return;
       state.currentListId = list.id;
-      localStorage.setItem(LS_LAST_LIST, list.name);
+      state.dueView = false;
+      rememberCurrentView();
       render();
     });
+    dueBanner.addEventListener('click', showDueView);
+    dueBanner.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); showDueView(); } });
+    setupListsBtn.addEventListener('click', createRecommendedLists);
     addListBtn.addEventListener('click', addList);
     renameListBtn.addEventListener('click', renameCurrentList);
     deleteListBtn.addEventListener('click', deleteCurrentList);
 
     newTaskForm.addEventListener('submit', e => {
       e.preventDefault();
-      addTask(newTaskInput.value);
+      addTask(newTaskInput.value, newTaskDate.value);
       newTaskInput.value = '';
+      newTaskDate.value = '';
       newTaskInput.focus();
     });
 
@@ -571,14 +873,38 @@
       gistLink.innerHTML = 'Gist : <a href="https://gist.github.com/' + id + '" target="_blank" rel="noopener noreferrer">' + id + '</a>';
     }
 
-    async function loadFromGist() {
-      setStatus('loading');
+    // Le contenu du gist, tel quel ('' si vide).
+    async function fetchRemote() {
       const id = await resolveGistId();
       showGistLink(id);
       const gist = await ghFetch('/gists/' + id);
       const file = gist.files[GIST_FILENAME];
       const content = file ? file.content : '';
-      loadStateFromText(content === '\n' ? '' : content);
+      return content === '\n' ? '' : content;
+    }
+
+    function sameContent(a, b) {
+      const norm = t => (t || '').replace(/[ \t]+$/gm, '').trim();
+      return norm(a) === norm(b);
+    }
+
+    // Dernier contenu du gist vu par cet appareil : s'il a changé au moment d'envoyer,
+    // c'est qu'un autre appareil a écrit entre-temps (conflit).
+    let lastRemote = localStorage.getItem(LS_BASE);
+    function setBase(content) {
+      lastRemote = content;
+      if (content === null) localStorage.removeItem(LS_BASE);
+      else localStorage.setItem(LS_BASE, content);
+    }
+
+    async function loadFromGist() {
+      setStatus('loading');
+      const gen = editGen;
+      const content = await fetchRemote();
+      // Modifié (ou envoi en cours) pendant le chargement : ne pas écraser, l'envoi s'en charge.
+      if (dirty || syncing || gen !== editGen) { if (!syncing) setStatus('pending'); return; }
+      loadStateFromText(content);
+      setBase(content);
       localStorage.setItem(LS_CACHE, serializeLists(state.lists));
       render();
       setStatus('synced');
@@ -586,42 +912,105 @@
 
     async function syncToGist() {
       setStatus('saving');
-      const id = await resolveGistId();
-      showGistLink(id);
-      await ghFetch('/gists/' + id, {
+      const remote = await fetchRemote();
+      const content = serializeLists(state.lists);
+      // Base inconnue (jamais chargé sur cet appareil) : tout gist non vide et différent est un conflit.
+      const changedElsewhere = lastRemote === null ? remote.trim() !== '' : !sameContent(remote, lastRemote);
+      if (changedElsewhere && !sameContent(remote, content)) {
+        showConflict(remote);
+        return;
+      }
+      await ghFetch('/gists/' + localStorage.getItem(LS_GIST_ID), {
         method: 'PATCH',
-        body: JSON.stringify({ files: { [GIST_FILENAME]: { content: serializeLists(state.lists) || '\n' } } })
+        body: JSON.stringify({ files: { [GIST_FILENAME]: { content: content || '\n' } } })
       });
-      setStatus('synced');
+      setBase(content);
+      setStatus(dirty ? 'pending' : 'synced');
     }
 
-    let dirty = false;
+    /* ---------- conflit : deux appareils ont modifié la todo ---------- */
+    let conflictRemote = null;
+    function showConflict(remote) {
+      conflictRemote = remote;
+      setDirty(true);
+      conflictBar.hidden = false;
+      setStatus('error', 'conflit : modifiée sur un autre appareil');
+    }
+    function closeConflict() {
+      conflictRemote = null;
+      conflictBar.hidden = true;
+    }
+    conflictKeepBtn.addEventListener('click', () => {
+      setBase(conflictRemote);
+      closeConflict();
+      flushSync();
+    });
+    conflictTakeBtn.addEventListener('click', () => {
+      closeConflict();
+      setDirty(false);
+      loadFromGist().catch(err => { console.error(err); setStatus('error', err.message); });
+    });
+
+    /* ---------- envoi différé ----------
+       dirty est aussi gardé dans le localStorage : des changements faits hors ligne
+       (téléphone sans réseau, onglet fermé avant l'envoi) partent au prochain lancement. */
+    let dirty = localStorage.getItem(LS_DIRTY) === '1';
+    let syncing = false;
+    let editGen = 0;                       // compte les modifications locales
     let debounceTimer = null;
-    function markDirty() {
-      dirty = true;
-      setStatus(ghToken ? 'pending' : 'offline');
-      if (!ghToken) return;
+    function setDirty(v) {
+      dirty = v;
+      if (v) localStorage.setItem(LS_DIRTY, '1');
+      else localStorage.removeItem(LS_DIRTY);
+    }
+    function scheduleSync() {
       clearTimeout(debounceTimer);
       debounceTimer = setTimeout(flushSync, DEBOUNCE_MS);
+    }
+    function markDirty() {
+      editGen++;
+      setDirty(true);
+      if (conflictRemote !== null) return;
+      setStatus(ghToken ? 'pending' : 'offline');
+      if (ghToken) scheduleSync();
     }
 
     function flushSync() {
       clearTimeout(debounceTimer);
-      if (!ghToken || !dirty) return;
-      dirty = false;
-      syncToGist().catch(err => { console.error(err); dirty = true; setStatus('error', err.message); });
+      if (!ghToken || !dirty || syncing || conflictRemote !== null) return;
+      syncing = true;
+      setDirty(false);
+      let failed = false;
+      syncToGist()
+        .catch(err => { console.error(err); failed = true; setDirty(true); setStatus('error', err.message); })
+        .finally(() => {
+          syncing = false;
+          // modifié pendant l'envoi : renvoyer (mais pas en boucle si le réseau est coupé)
+          if (dirty && !failed && conflictRemote === null) scheduleSync();
+        });
     }
+
     // Filet de sécurité en plus du debounce : sauvegarde garantie quand
     // l'onglet passe en arrière-plan/se ferme (visibilitychange est le signal
-    // fiable ; pagehide/beforeunload en secours).
+    // fiable ; pagehide/beforeunload en secours). Au retour au premier plan,
+    // on recharge le gist : un autre appareil l'a peut-être modifié.
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'hidden') flushSync();
+      if (document.visibilityState === 'hidden') { flushSync(); return; }
+      if (isEditing()) return;
+      render();   // « aujourd'hui », « demain »… peuvent avoir changé depuis la veille
+      if (!ghToken || syncing || conflictRemote !== null) return;
+      if (dirty) flushSync();
+      else loadFromGist().catch(err => { console.error(err); setStatus('error', err.message); });
     });
     window.addEventListener('pagehide', flushSync);
     window.addEventListener('beforeunload', flushSync);
+    window.addEventListener('online', flushSync);
 
     reloadBtn.addEventListener('click', () => {
       if (!ghToken) { openSettings(); return; }
+      if (dirty && !confirm('Des changements de cet appareil ne sont pas encore envoyés. Les abandonner et recharger ?')) return;
+      closeConflict();
+      setDirty(false);
       loadFromGist().catch(err => { console.error(err); setStatus('error', err.message); });
     });
 
@@ -649,6 +1038,8 @@
       localStorage.setItem(LS_TOKEN, ghToken);
       settingsError.style.display = 'none';
       try {
+        closeConflict();
+        setDirty(false);
         await loadFromGist();
         closeSettings();
       } catch (err) {
@@ -662,6 +1053,8 @@
       ghToken = '';
       localStorage.removeItem(LS_TOKEN);
       localStorage.removeItem(LS_GIST_ID);
+      setBase(null);
+      closeConflict();
       tokenInput.value = '';
       gistLink.textContent = '';
       setStatus('offline');
@@ -671,11 +1064,11 @@
     loadStateFromText(localStorage.getItem(LS_CACHE) || '');
     render();
 
-    if (ghToken) {
-      loadFromGist().catch(err => { console.error(err); setStatus('error', err.message); });
-    } else {
-      setStatus('offline');
-    }
+    if (!ghToken) setStatus('offline');
+    else if (dirty) flushSync();
+    else loadFromGist().catch(err => { console.error(err); setStatus('error', err.message); });
+
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(err => console.error(err));
   });
   </script>
 </body>

@@ -15,6 +15,13 @@ build), extrait avec son historique du site principal `~/work/00.site`
   GitHub scope `gist` stocké dans `localStorage` (`LS_TOKEN`), écriture
   différée (`DEBOUNCE_MS`). Clés `localStorage` préfixées `todo…` : ne pas
   les renommer (perte des données déjà en cache chez l'utilisateur).
+- Format `todo.txt` (voir `README.md`) : `[#A]` en tête, `DEADLINE: <AAAA-MM-JJ>` en
+  fin de tâche ; lu par la commande `envie` (`~/code/05-claude/coach/CLAUDE.md`) : garder
+  les deux en accord. Clés de synchro : `todoDirty` (changements non envoyés),
+  `todoRemoteBase` (dernier contenu connu du gist, sert à détecter les conflits).
+- PWA : `manifest.webmanifest`, `sw.js` (réseau d'abord, ne met jamais en cache
+  `api.github.com` ; changer `CACHE` si la liste des fichiers mis en cache change),
+  `icons/todo-{192,512}.png` (agrandissement pixel de `todo.png` du site).
 - Aperçu local : lien symbolique `~/work/00.site/todo → ~/code/04-web/todo`
   (ignoré par git dans le site), `python3 -m http.server` à la racine de
   `00.site`, http://localhost:8000/todo/.
